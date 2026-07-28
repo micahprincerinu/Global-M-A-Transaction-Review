@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Global M&A Transaction Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0F2440; --navy-2:#16324F; --navy-3:#1E3E5F;
+    --paper:#F7F6F2; --panel:#FFFFFF; --line:#DCD8CC; --line-2:#E7E4DA;
+    --ink:#1A1D22; --ink-dim:#5B6270; --ink-dim2:#8A8F99;
+    --gold:#8C6B2E; --gold-line:#B99A54;
+    --green:#1E4D3B; --green-bg:#E7EFEA;
+    --maroon:#7A2530; --maroon-bg:#F5E7E6;
+    --gray:#5B6270; --gray-bg:#EDEBE4;
+    --serif: Georgia, 'Times New Roman', Times, serif;
+    --sans: Arial, Helvetica, 'Helvetica Neue', sans-serif;
+    --mono: Consolas, 'Courier New', Courier, monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+  }
+  ::selection{ background:var(--gold-line); color:var(--navy); }
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    background:var(--navy); color:#EDEFF3; padding:7px 40px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--sans); font-size:11px; letter-spacing:0.04em;
+  }
+  .masthead .left{ text-transform:uppercase; letter-spacing:0.12em; color:#B9C2D1; }
+  .masthead .right{ color:#8FA0BB; }
+
+  header{
+    background:var(--panel);
+    padding:26px 40px 22px; border-bottom:3px solid var(--navy);
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;
+  }
+  .firm-line{
+    font-family:var(--sans); font-size:11px; letter-spacing:0.14em; color:var(--gold);
+    text-transform:uppercase; margin-bottom:10px; font-weight:bold;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; font-size:28px; letter-spacing:0; color:var(--navy);
+    line-height:1.2;
+  }
+  .tagline{ color:var(--ink-dim); font-size:13px; margin-top:8px; max-width:560px; font-style:italic;}
+  .header-meta{ text-align:right; font-family:var(--sans); font-size:11px; color:var(--ink-dim);}
+  .header-meta strong{ color:var(--navy); display:block; font-size:13px; margin-bottom:3px; font-family:var(--serif);}
+  .confidential{
+    display:inline-block; margin-top:8px; font-size:10px; letter-spacing:0.1em; color:var(--maroon);
+    border:1px solid var(--maroon); padding:2px 8px; text-transform:uppercase;
+  }
+
+  /* ---------- Layout ---------- */
+  main{ padding:28px 40px 50px; max-width:1360px; margin:0 auto;}
+  .kpi-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:0; background:var(--panel);
+    border:1px solid var(--line); margin-bottom:30px; }
+  .kpi{ padding:16px 20px; border-right:1px solid var(--line); }
+  .kpi:last-child{ border-right:none; }
+  .kpi .label{ font-family:var(--sans); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--ink-dim2); margin-bottom:8px; font-weight:bold;}
+  .kpi .value{ font-family:var(--serif); font-size:25px; font-weight:700; color:var(--navy);}
+  .kpi .value.green{ color:var(--green);} .kpi .value.maroon{ color:var(--maroon);} .kpi .value.gold{color:var(--gold);}
+  .kpi .sub{ font-size:10.5px; color:var(--ink-dim2); margin-top:3px;}
+
+  .exhibit-label{
+    font-family:var(--sans); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--gold); font-weight:bold; margin-bottom:3px;
+  }
+  .section-title{
+    font-family:var(--serif); font-size:18px; font-weight:700; margin-bottom:3px; color:var(--navy);
+  }
+  .section-sub{ font-size:11.5px; color:var(--ink-dim); margin-bottom:14px; }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; margin-bottom:28px;}
+  .grid-2b{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px;}
+  .card{ background:var(--panel); border:1px solid var(--line); padding:20px;}
+  .card canvas{ max-height:270px; }
+
+  .rank-list{ list-style:none; }
+  .rank-list li{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--line-2); font-size:12.5px;
+  }
+  .rank-list li:last-child{ border-bottom:none; }
+  .rank-num{ font-family:var(--mono); color:var(--ink-dim2); width:20px; display:inline-block; font-size:11px;}
+  .rank-name{ font-weight:bold; color:var(--ink); }
+  .rank-sub{ color:var(--ink-dim2); font-size:10.5px;}
+  .rank-score{ font-family:var(--mono); font-weight:bold; padding:2px 8px; font-size:11.5px; border:1px solid;}
+  .score-creator{ background:var(--green-bg); color:var(--green); border-color:var(--green);}
+  .score-destroyer{ background:var(--maroon-bg); color:var(--maroon); border-color:var(--maroon);}
+  .score-mixed{ background:var(--gray-bg); color:var(--ink-dim); border-color:var(--line);}
+
+  /* ---------- Explorer ---------- */
+  .explorer-header{ display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px;}
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; }
+  input[type=text], select{
+    background:var(--panel); border:1px solid var(--line); color:var(--ink);
+    font-family:var(--sans); font-size:12.5px; padding:8px 10px; outline:none;
+  }
+  input[type=text]{ min-width:220px; }
+  input[type=text]:focus, select:focus{ border-color:var(--navy); }
+  select{ cursor:pointer; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  thead th{
+    text-align:left; font-family:var(--sans); font-size:10px; text-transform:uppercase;
+    letter-spacing:0.05em; color:#F0F1F4; background:var(--navy); padding:9px 12px;
+    cursor:pointer; user-select:none; white-space:nowrap; font-weight:bold;
+  }
+  thead th:hover{ background:var(--navy-3); }
+  tbody tr{ border-bottom:1px solid var(--line-2); cursor:pointer; transition:background 0.1s; }
+  tbody tr:nth-child(even){ background:#FCFBF8; }
+  tbody tr:hover{ background:var(--gray-bg); }
+  tbody td{ padding:10px 12px; vertical-align:middle; }
+  .deal-pair{ font-weight:bold; color:var(--navy); }
+  .deal-pair .arrow{ color:var(--ink-dim2); font-weight:400; margin:0 6px;}
+  .tag{ font-family:var(--sans); font-size:10px; padding:2px 7px; border:1px solid var(--line); color:var(--ink-dim); display:inline-block;}
+  .value-cell{ font-family:var(--mono); }
+  .score-pill{ font-family:var(--mono); font-weight:bold; font-size:11.5px; padding:3px 9px; display:inline-block; min-width:36px; text-align:center; border:1px solid;}
+
+  /* ---------- Detail panel ---------- */
+  .detail-overlay{
+    position:fixed; inset:0; background:rgba(15,36,64,0.55); display:none;
+    align-items:center; justify-content:center; z-index:50; padding:24px;
+  }
+  .detail-overlay.open{ display:flex; }
+  .detail-card{
+    background:var(--panel); border-top:4px solid var(--navy); max-width:640px; width:100%;
+    max-height:85vh; overflow-y:auto; padding:30px;
+  }
+  .detail-card h2{ font-family:var(--serif); font-size:22px; margin-bottom:3px; color:var(--navy); }
+  .detail-card .sub{ font-family:var(--sans); font-size:11px; color:var(--ink-dim2); margin-bottom:18px; text-transform:uppercase; letter-spacing:0.04em;}
+  .detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+  .detail-item .l{ font-family:var(--sans); font-size:9.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-dim2); margin-bottom:3px; font-weight:bold;}
+  .detail-item .v{ font-size:13.5px; }
+  .detail-note{ background:var(--gray-bg); border-left:3px solid var(--gold); padding:12px 16px; font-size:12.5px; color:var(--ink-dim); margin-bottom:16px; }
+  .score-bars{ display:flex; flex-direction:column; gap:8px; margin-bottom:18px;}
+  .score-bar-row{ display:flex; align-items:center; gap:10px; font-size:11.5px;}
+  .score-bar-label{ width:90px; color:var(--ink-dim); font-family:var(--sans); font-size:10px;}
+  .score-bar-track{ flex:1; height:6px; background:var(--line-2); position:relative;}
+  .score-bar-fill{ height:100%; background:var(--navy); }
+  .score-bar-val{ width:24px; font-family:var(--mono); text-align:right; }
+  .close-btn{ float:right; background:none; border:1px solid var(--line); color:var(--ink-dim); font-family:var(--sans);
+    padding:6px 12px; cursor:pointer; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em;}
+  .close-btn:hover{ border-color:var(--navy); color:var(--navy);}
+
+  footer{ padding:20px 40px; border-top:1px solid var(--line); font-size:10.5px; color:var(--ink-dim2); background:var(--panel); line-height:1.6;}
+  footer .disclaimer{ max-width:1360px; margin:0 auto; }
+  footer b{ color:var(--ink-dim); }
+
+  @media(max-width:900px){
+    .kpi-row{ grid-template-columns:repeat(2,1fr); }
+    .grid-2, .grid-2b{ grid-template-columns:1fr; }
+    header, main, .masthead, footer .disclaimer{ padding-left:20px; padding-right:20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="left">@micahprincerinu &nbsp;|&nbsp; M&amp;A Research</div>
+  <div class="right">Strictly Private and Confidential</div>
+</div>
+
+<header>
+  <div>
+    <div class="firm-line">M&amp;A Outcomes Review &mdash; Global Coverage, 1999&ndash;2025</div>
+    <h1>Global M&amp;A Transaction Review</h1>
+    <div class="tagline">An assessment of which large-cap acquisitions created shareholder value, and which destroyed it.</div>
+    <div class="confidential">Prepared for Internal Discussion Purposes Only</div>
+  </div>
+  <div class="header-meta">
+    <strong id="deal-count">40 Transactions Reviewed</strong>
+    Dataset: Phase 1 of 100 &middot; Coverage Expanding<br>
+    Last Updated: July 2026
+  </div>
+</header>
+
+<main>
+
+  <section class="kpi-row" id="kpi-row"></section>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="exhibit-label">Exhibit 1</div>
+      <div class="section-title">Aggregate Transaction Value by Year</div>
+      <div class="section-sub">Announced deal value, $ in billions</div>
+      <canvas id="chartYear"></canvas>
+    </div>
+    <div class="card">
+      <div class="exhibit-label">Exhibit 2</div>
+      <div class="section-title">Outcome Distribution</div>
+      <div class="section-sub">Value creation vs. value destruction, by transaction count</div>
+      <canvas id="chartOutcome"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2b">
+    <div class="card">
+      <div class="exhibit-label">Exhibit 3</div>
+      <div class="section-title">Transaction Volume by Sector</div>
+      <div class="section-sub">Number of transactions by primary industry</div>
+      <canvas id="chartIndustry"></canvas>
+    </div>
+    <div class="card">
+      <div class="exhibit-label">Exhibit 4</div>
+      <div class="section-title">Geographic Distribution</div>
+      <div class="section-sub">Acquirer headquarters by country, deal count</div>
+      <canvas id="chartGeo"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2b">
+    <div class="card">
+      <div class="exhibit-label">Exhibit 5</div>
+      <div class="section-title">Highest-Ranked Value-Creating Transactions</div>
+      <div class="section-sub">Ranked by composite outcome score</div>
+      <ul class="rank-list" id="topCreators"></ul>
+    </div>
+    <div class="card">
+      <div class="exhibit-label">Exhibit 6</div>
+      <div class="section-title">Lowest-Ranked Value-Destroying Transactions</div>
+      <div class="section-sub">Ranked by composite outcome score</div>
+      <ul class="rank-list" id="topDestroyers"></ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:28px;">
+    <div class="explorer-header">
+      <div>
+        <div class="exhibit-label">Exhibit 7</div>
+        <div class="section-title">Transaction Database</div>
+        <div class="section-sub">Search or filter the full set of reviewed transactions</div>
+      </div>
+      <div class="controls">
+        <input type="text" id="searchBox" placeholder="Search acquirer or target&hellip;">
+        <select id="industryFilter"><option value="">All Sectors</option></select>
+        <select id="outcomeFilter">
+          <option value="">All Outcomes</option>
+          <option value="Value Creator">Value Creator</option>
+          <option value="Mixed / Neutral">Mixed / Neutral</option>
+          <option value="Value Destroyer">Value Destroyer</option>
+          <option value="Too Early / Insufficient Data">Too Early</option>
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th data-key="year">Year</th>
+          <th data-key="deal">Transaction</th>
+          <th data-key="industry">Sector</th>
+          <th data-key="value_bn">Value ($B)</th>
+          <th data-key="premium_pct">Premium</th>
+          <th data-key="payment">Consideration</th>
+          <th data-key="final_score">Score</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  <div class="disclaimer">
+    <b>Methodology.</b> Transaction facts (value, premium, form of consideration, timing) are sourced from SEC filings, company press releases, and financial press coverage.
+    The Composite Outcome Score is a proprietary weighted model &mdash; Strategic Fit (20%), Financial Performance (25%), Market / Analyst Reaction (25%), Synergy Realization (15%), and Premium Discipline (15%) &mdash;
+    derived from publicly documented post-close outcomes rather than measured intraday share-price data.<br><br>
+    This material has been prepared for internal discussion and general informational purposes only. It does not constitute investment, financial, legal, or tax advice, nor an offer or solicitation with respect to any transaction or security.
+    Scores and classifications reflect directional, retrospective analysis and should not be relied upon as a predictor of future outcomes. Past transaction performance is not indicative of future results.
+  </div>
+</footer>
+
+<div class="detail-overlay" id="overlay">
+  <div class="detail-card" id="detailCard"></div>
+</div>
+
+<script>
+const deals = [{"acquirer":"Microsoft","target":"Activision Blizzard","year":2022,"closed":2023,"industry":"Technology","country":"USA","value_bn":68.7,"payment":"Cash","premium_pct":45,"friendly":true,"rationale":"Gaming/mobile expansion, Xbox ecosystem, Game Pass content pipeline","strategic":8,"financial":6,"market":5,"synergy":6,"note":"Largest gaming deal ever; 20-month regulatory fight; integration still early.","final_score":61.2,"category":"Mixed / Neutral"},{"acquirer":"Microsoft","target":"LinkedIn","year":2016,"closed":2016,"industry":"Technology","country":"USA","value_bn":26.2,"payment":"Cash","premium_pct":50,"friendly":true,"rationale":"Enterprise social graph, sales/talent cross-sell into Office 365","strategic":9,"financial":9,"market":8,"synergy":8,"note":"Revenue roughly tripled post-acquisition; widely cited as a success.","final_score":80.0,"category":"Value Creator"},{"acquirer":"Microsoft","target":"GitHub","year":2018,"closed":2018,"industry":"Technology","country":"USA","value_bn":7.5,"payment":"Stock","premium_pct":null,"friendly":true,"rationale":"Developer ecosystem ownership, Azure cloud cross-sell, Copilot platform","strategic":9,"financial":8,"market":8,"synergy":8,"note":"Subscriber base and revenue grew multiples; enabled Copilot franchise.","final_score":79.0,"category":"Value Creator"},{"acquirer":"Google","target":"YouTube","year":2006,"closed":2006,"industry":"Technology","country":"USA","value_bn":1.65,"payment":"Stock","premium_pct":null,"friendly":true,"rationale":"Video platform land-grab ahead of rivals","strategic":10,"financial":10,"market":9,"synergy":9,"note":"Now a core double-digit-billion revenue segment for Alphabet.","final_score":90.0,"category":"Value Creator"},{"acquirer":"Google","target":"Motorola Mobility","year":2012,"closed":2012,"industry":"Technology","country":"USA","value_bn":12.5,"payment":"Cash","premium_pct":63,"friendly":true,"rationale":"Patent portfolio defense, hardware ambitions","strategic":3,"financial":2,"market":3,"synergy":2,"note":"Resold to Lenovo in 2014 for $2.91B; widely cited as a failure/patent play only.","final_score":25.7,"category":"Value Destroyer"},{"acquirer":"Meta","target":"Instagram","year":2012,"closed":2012,"industry":"Technology","country":"USA","value_bn":1.0,"payment":"Cash+Stock","premium_pct":null,"friendly":true,"rationale":"Mobile-first photo sharing, defend against fragmentation of attention","strategic":10,"financial":10,"market":9,"synergy":9,"note":"One of the highest-return acquisitions in corporate history.","final_score":90.0,"category":"Value Creator"},{"acquirer":"Meta","target":"WhatsApp","year":2014,"closed":2014,"industry":"Technology","country":"USA","value_bn":19.0,"payment":"Cash+Stock","premium_pct":null,"friendly":true,"rationale":"Global messaging reach, defensive moat vs. competitors","strategic":8,"financial":5,"market":6,"synergy":5,"note":"Huge strategic reach (2B+ users) but slow, contested monetization.","final_score":60.0,"category":"Mixed / Neutral"},{"acquirer":"Amazon","target":"Whole Foods","year":2017,"closed":2017,"industry":"Technology/Retail","country":"USA","value_bn":13.7,"payment":"Cash","premium_pct":27,"friendly":true,"rationale":"Physical grocery footprint, fresh logistics, Prime ecosystem tie-in","strategic":6,"financial":5,"market":6,"synergy":5,"note":"Stabilized Whole Foods but limited transformative growth for Amazon overall.","final_score":60.2,"category":"Mixed / Neutral"},{"acquirer":"Oracle","target":"Cerner","year":2022,"closed":2022,"industry":"Technology/Healthcare","country":"USA","value_bn":28.3,"payment":"Cash","premium_pct":20,"friendly":true,"rationale":"Healthcare EHR platform, cloud migration of Cerner's install base","strategic":6,"financial":5,"market":5,"synergy":5,"note":"Integration accompanied by layoffs and slower-than-hoped cloud transition.","final_score":59.5,"category":"Mixed / Neutral"},{"acquirer":"Salesforce","target":"Slack","year":2021,"closed":2021,"industry":"Technology","country":"USA","value_bn":27.7,"payment":"Cash+Stock","premium_pct":54,"friendly":true,"rationale":"Enterprise collaboration layer to bind Salesforce products together","strategic":5,"financial":4,"market":3,"synergy":4,"note":"Widely viewed as overpaid; activist pressure (Elliott, Starboard) followed.","final_score":40.0,"category":"Value Destroyer"},{"acquirer":"IBM","target":"Red Hat","year":2019,"closed":2019,"industry":"Technology","country":"USA","value_bn":34.0,"payment":"Cash","premium_pct":63,"friendly":true,"rationale":"Hybrid cloud/OpenShift platform, enterprise Linux relationships","strategic":7,"financial":6,"market":5,"synergy":6,"note":"Largest IBM deal ever; hybrid-cloud strategy central but slow to reaccelerate growth.","final_score":54.8,"category":"Mixed / Neutral"},{"acquirer":"Broadcom","target":"VMware","year":2023,"closed":2023,"industry":"Technology","country":"USA","value_bn":69.0,"payment":"Cash+Stock","premium_pct":44,"friendly":true,"rationale":"Enterprise virtualization software attach to Broadcom's infrastructure stack","strategic":6,"financial":7,"market":4,"synergy":6,"note":"Strong cost/revenue synergy capture for Broadcom; major customer/partner pushback on pricing.","final_score":57.5,"category":"Mixed / Neutral"},{"acquirer":"JPMorgan Chase","target":"First Republic Bank","year":2023,"closed":2023,"industry":"Finance","country":"USA","value_bn":10.6,"payment":"Cash (FDIC-assisted)","premium_pct":null,"friendly":true,"rationale":"Opportunistic distressed acquisition of failed bank's deposits/wealth clients","strategic":8,"financial":8,"market":7,"synergy":7,"note":"FDIC-assisted resolution deal, not a market-priced acquisition; broadly seen as a win for JPM.","final_score":73.0,"category":"Value Creator"},{"acquirer":"Capital One","target":"Discover Financial","year":2024,"closed":2025,"industry":"Finance","country":"USA","value_bn":35.3,"payment":"Stock","premium_pct":26,"friendly":true,"rationale":"Owns a payments network (Discover) instead of renting Visa/Mastercard rails","strategic":7,"financial":null,"market":6,"synergy":null,"note":"Closed 2025; network-ownership thesis promising but too early for financial verdict.","final_score":null,"category":"Too Early / Insufficient Data"},{"acquirer":"UBS","target":"Credit Suisse","year":2023,"closed":2023,"industry":"Finance","country":"Switzerland","value_bn":3.25,"payment":"Stock","premium_pct":null,"friendly":false,"rationale":"Government-orchestrated rescue to prevent Credit Suisse collapse/contagion","strategic":6,"financial":5,"market":6,"synergy":5,"note":"Distressed, regulator-brokered deal at a steep discount to book value; integration risk is high.","final_score":56.0,"category":"Mixed / Neutral"},{"acquirer":"Visa","target":"Plaid","year":2020,"closed":null,"industry":"Finance","country":"USA","value_bn":5.3,"payment":"Cash","premium_pct":null,"friendly":true,"rationale":"Fintech data-connectivity layer, defend against account-to-account payment disintermediation","strategic":null,"financial":null,"market":null,"synergy":null,"note":"Deal abandoned in Jan 2021 after DOJ antitrust suit; Plaid later raised at a much lower valuation.","final_score":null,"category":"Too Early / Insufficient Data"},{"acquirer":"Charles Schwab","target":"TD Ameritrade","year":2020,"closed":2020,"industry":"Finance","country":"USA","value_bn":26.0,"payment":"Stock","premium_pct":null,"friendly":true,"rationale":"Scale in discount brokerage after commission-free trading compressed margins industry-wide","strategic":8,"financial":7,"market":7,"synergy":7,"note":"Successful scale consolidation; integration largely completed on schedule.","final_score":70.5,"category":"Value Creator"},{"acquirer":"Morgan Stanley","target":"E*TRADE","year":2020,"closed":2020,"industry":"Finance","country":"USA","value_bn":13.0,"payment":"Stock","premium_pct":30,"friendly":true,"rationale":"Retail wealth management scale, workplace equity plan client funnel","strategic":8,"financial":8,"market":7,"synergy":7,"note":"Widely viewed as successful; expanded Morgan Stanley's wealth management base sharply.","final_score":76.5,"category":"Value Creator"},{"acquirer":"Pfizer","target":"Wyeth","year":2009,"closed":2009,"industry":"Healthcare","country":"USA","value_bn":68.0,"payment":"Cash+Stock","premium_pct":29,"friendly":true,"rationale":"Diversify beyond small-molecule patent cliff into vaccines/biologics/consumer health","strategic":6,"financial":5,"market":5,"synergy":6,"note":"Big-pharma scale deal; helped diversification but dividend was cut to help fund it.","final_score":58.8,"category":"Mixed / Neutral"},{"acquirer":"Bristol Myers Squibb","target":"Celgene","year":2019,"closed":2019,"industry":"Healthcare","country":"USA","value_bn":74.0,"payment":"Cash+Stock","premium_pct":54,"friendly":true,"rationale":"Oncology pipeline (Revlimid) and cell-therapy platform","strategic":5,"financial":4,"market":3,"synergy":5,"note":"Stock underperformed post-close on Revlimid patent-cliff concerns; high premium heavily criticized.","final_score":41.5,"category":"Value Destroyer"},{"acquirer":"AbbVie","target":"Allergan","year":2020,"closed":2020,"industry":"Healthcare","country":"USA","value_bn":63.0,"payment":"Cash+Stock","premium_pct":45,"friendly":true,"rationale":"Diversify beyond Humira patent cliff via Botox/aesthetics franchise","strategic":7,"financial":6,"market":5,"synergy":6,"note":"Aesthetics franchise has helped offset Humira erosion, but deal loaded AbbVie with heavy debt.","final_score":59.3,"category":"Mixed / Neutral"},{"acquirer":"CVS Health","target":"Aetna","year":2018,"closed":2018,"industry":"Healthcare","country":"USA","value_bn":69.0,"payment":"Cash+Stock","premium_pct":29,"friendly":true,"rationale":"Vertical integration of pharmacy, PBM, and health insurance","strategic":6,"financial":5,"market":5,"synergy":5,"note":"Strategic logic sound; synergy realization and margin gains slower than modeled.","final_score":57.2,"category":"Mixed / Neutral"},{"acquirer":"Cigna","target":"Express Scripts","year":2018,"closed":2018,"industry":"Healthcare","country":"USA","value_bn":67.0,"payment":"Cash+Stock","premium_pct":31,"friendly":true,"rationale":"Vertical integration of insurer with pharmacy-benefit manager","strategic":6,"financial":6,"market":5,"synergy":6,"note":"Comparable vertical-integration logic to CVS-Aetna; moderate, unspectacular results.","final_score":60.7,"category":"Mixed / Neutral"},{"acquirer":"Disney","target":"21st Century Fox","year":2019,"closed":2019,"industry":"Consumer/Media","country":"USA","value_bn":71.3,"payment":"Cash+Stock","premium_pct":36,"friendly":true,"rationale":"Content library and IP (X-Men, Avatar, FX) to fuel Disney+ streaming launch","strategic":7,"financial":4,"market":5,"synergy":5,"note":"Enabled Disney+ launch but required large write-downs of legacy Fox TV/film assets.","final_score":55.0,"category":"Mixed / Neutral"},{"acquirer":"Kraft Foods Group","target":"H.J. Heinz","year":2015,"closed":2015,"industry":"Consumer","country":"USA","value_bn":100.0,"payment":"Cash+Stock","premium_pct":null,"friendly":true,"rationale":"3G Capital-style cost-cutting merger of two packaged-food giants","strategic":2,"financial":2,"market":2,"synergy":3,"note":"2019 saw a $15.4B goodwill/brand impairment; broadly regarded as a value-destroying merger.","final_score":27.5,"category":"Value Destroyer"},{"acquirer":"AB InBev","target":"SABMiller","year":2016,"closed":2016,"industry":"Consumer","country":"Belgium","value_bn":107.0,"payment":"Cash+Stock","premium_pct":50,"friendly":true,"rationale":"Global scale in beer, emerging-market distribution (Africa, Latin America)","strategic":5,"financial":3,"market":3,"synergy":5,"note":"Debt load ballooned; forced to divest MillerCoors stake; stock underperformed for years.","final_score":40.0,"category":"Value Destroyer"},{"acquirer":"PepsiCo","target":"SodaStream","year":2018,"closed":2018,"industry":"Consumer","country":"Israel","value_bn":3.2,"payment":"Cash","premium_pct":10,"friendly":true,"rationale":"At-home carbonation platform, sustainability/reduced-plastic positioning","strategic":6,"financial":6,"market":6,"synergy":6,"note":"Modest, steady positive contributor; not transformative but not value-destroying either.","final_score":66.0,"category":"Mixed / Neutral"},{"acquirer":"LVMH","target":"Tiffany & Co.","year":2021,"closed":2021,"industry":"Consumer/Luxury","country":"France","value_bn":15.8,"payment":"Cash","premium_pct":37,"friendly":true,"rationale":"U.S. hard-luxury/jewelry entry to round out LVMH's luxury portfolio","strategic":8,"financial":7,"market":7,"synergy":7,"note":"Tiffany revenue and margins improved meaningfully under LVMH ownership/investment.","final_score":72.2,"category":"Value Creator"},{"acquirer":"Fiat","target":"Chrysler","year":2014,"closed":2014,"industry":"Automotive","country":"Italy","value_bn":4.35,"payment":"Cash+Stock","premium_pct":null,"friendly":true,"rationale":"Combine platforms/scale post-2009 bankruptcy stake to form FCA","strategic":8,"financial":7,"market":6,"synergy":7,"note":"Turned Chrysler around into a profitable global group (FCA), later merged into Stellantis.","final_score":68.0,"category":"Mixed / Neutral"},{"acquirer":"PSA Group","target":"Fiat Chrysler (Stellantis)","year":2021,"closed":2021,"industry":"Automotive","country":"France","value_bn":52.0,"payment":"Stock (merger of equals)","premium_pct":null,"friendly":true,"rationale":"Global scale, platform-sharing, EV investment pooling","strategic":8,"financial":8,"market":7,"synergy":8,"note":"Cost synergies came in ahead of initial targets; one of the more successful auto mega-mergers.","final_score":74.5,"category":"Value Creator"},{"acquirer":"Geely","target":"Volvo Cars","year":2010,"closed":2010,"industry":"Automotive","country":"China","value_bn":1.8,"payment":"Cash","premium_pct":null,"friendly":true,"rationale":"Acquire premium European brand/technology, access to global platforms","strategic":9,"financial":8,"market":8,"synergy":8,"note":"Widely cited as one of the best cross-border auto deals; Volvo later IPO'd successfully.","final_score":79.0,"category":"Value Creator"},{"acquirer":"Tata Motors","target":"Jaguar Land Rover","year":2008,"closed":2008,"industry":"Automotive","country":"India","value_bn":2.3,"payment":"Cash","premium_pct":null,"friendly":true,"rationale":"Premium global brand acquisition from Ford at a cyclical low","strategic":6,"financial":6,"market":5,"synergy":6,"note":"Rocky first years (financial crisis) then strong profits; more recently pressured by EV transition costs.","final_score":57.5,"category":"Mixed / Neutral"},{"acquirer":"Exxon","target":"Mobil","year":1999,"closed":1999,"industry":"Energy","country":"USA","value_bn":81.0,"payment":"Stock","premium_pct":null,"friendly":true,"rationale":"Create a dominant integrated oil & gas supermajor at scale","strategic":9,"financial":9,"market":8,"synergy":8,"note":"Textbook successful oil mega-merger; ExxonMobil delivered strong returns for two decades.","final_score":81.5,"category":"Value Creator"},{"acquirer":"Chevron","target":"Hess","year":2023,"closed":2024,"industry":"Energy","country":"USA","value_bn":53.0,"payment":"Stock","premium_pct":10,"friendly":true,"rationale":"Guyana offshore oil position, Bakken shale assets","strategic":7,"financial":null,"market":6,"synergy":null,"note":"Closed only after arbitration over Exxon's pre-emption rights in Guyana resolved; too early to score fully.","final_score":null,"category":"Too Early / Insufficient Data"},{"acquirer":"Shell","target":"BG Group","year":2016,"closed":2016,"industry":"Energy","country":"UK","value_bn":70.0,"payment":"Cash+Stock","premium_pct":50,"friendly":true,"rationale":"LNG portfolio and deepwater Brazil pre-salt assets","strategic":7,"financial":6,"market":4,"synergy":6,"note":"Painful first two years amid the oil-price crash; LNG position ultimately proved strategically valuable.","final_score":55.5,"category":"Mixed / Neutral"},{"acquirer":"T-Mobile","target":"Sprint","year":2020,"closed":2020,"industry":"Telecommunications","country":"USA","value_bn":26.0,"payment":"Stock","premium_pct":null,"friendly":true,"rationale":"Spectrum/scale to build out nationwide 5G network faster than standalone","strategic":9,"financial":8,"market":8,"synergy":8,"note":"Widely regarded as a success; T-Mobile's network and subscriber growth outpaced peers post-merger.","final_score":79.0,"category":"Value Creator"},{"acquirer":"AT&T","target":"Time Warner","year":2018,"closed":2018,"industry":"Telecommunications","country":"USA","value_bn":85.0,"payment":"Cash+Stock","premium_pct":36,"friendly":true,"rationale":"Vertical integration of distribution (AT&T) and content (HBO, Warner Bros.)","strategic":3,"financial":2,"market":2,"synergy":3,"note":"AT&T later spun off WarnerMedia into Discovery merger at a steep loss; widely cited as a failed deal.","final_score":31.5,"category":"Value Destroyer"},{"acquirer":"Discovery","target":"WarnerMedia","year":2022,"closed":2022,"industry":"Entertainment","country":"USA","value_bn":43.0,"payment":"Stock (Reverse Morris Trust)","premium_pct":null,"friendly":true,"rationale":"Combine cable/unscripted content with WarnerMedia's premium IP and HBO Max","strategic":5,"financial":4,"market":3,"synergy":5,"note":"Heavy debt load, stock underperformance, though streaming losses have since narrowed.","final_score":44.0,"category":"Value Destroyer"},{"acquirer":"Take-Two Interactive","target":"Zynga","year":2022,"closed":2022,"industry":"Entertainment","country":"USA","value_bn":12.7,"payment":"Cash+Stock","premium_pct":64,"friendly":true,"rationale":"Mobile gaming diversification alongside console/PC franchises (GTA, NBA 2K)","strategic":4,"financial":3,"market":3,"synergy":4,"note":"Closed just as mobile-gaming valuations peaked and then cooled; broadly seen as an expensive entry point.","final_score":33.0,"category":"Value Destroyer"},{"acquirer":"Electronic Arts","target":"Codemasters","year":2021,"closed":2021,"industry":"Entertainment","country":"UK","value_bn":1.2,"payment":"Cash+Stock","premium_pct":15,"friendly":true,"rationale":"Racing-game portfolio expansion (F1, DIRT) alongside EA Sports","strategic":6,"financial":6,"market":6,"synergy":6,"note":"Modest, steady positive contributor to EA's sports/racing portfolio.","final_score":66.0,"category":"Mixed / Neutral"}];
+
+// ---------- helpers ----------
+const fmtB = v => v==null ? '—' : (v>=10 ? '$'+v.toFixed(0)+'B' : '$'+v.toFixed(1)+'B');
+const fmtPct = v => v==null ? '—' : v+'%';
+const scoreClass = cat => cat==='Value Creator' ? 'score-creator' : cat==='Value Destroyer' ? 'score-destroyer' : 'score-mixed';
+const scoreColor = cat => cat==='Value Creator' ? '#1E4D3B' : cat==='Value Destroyer' ? '#7A2530' : '#8C6B2E';
+
+document.getElementById('deal-count').textContent = deals.length + ' Transactions Reviewed';
+
+// ---------- KPIs ----------
+const scored = deals.filter(d=>d.final_score!=null);
+const totalValue = deals.reduce((s,d)=>s+d.value_bn,0);
+const avgPremium = (()=>{ const p = deals.filter(d=>d.premium_pct!=null).map(d=>d.premium_pct); return p.reduce((a,b)=>a+b,0)/p.length; })();
+const creators = scored.filter(d=>d.category==='Value Creator').length;
+const destroyers = scored.filter(d=>d.category==='Value Destroyer').length;
+const successRate = Math.round(100*creators/scored.length);
+
+const kpis = [
+  {label:'Total Deal Value', value:'$'+totalValue.toFixed(0)+'B', sub: deals.length+' transactions', cls:''},
+  {label:'Average Premium Paid', value: avgPremium.toFixed(0)+'%', sub:'vs. pre-announcement price', cls:'gold'},
+  {label:'Value Creators', value: creators, sub: Math.round(100*creators/scored.length)+'% of scored deals', cls:'green'},
+  {label:'Value Destroyers', value: destroyers, sub: Math.round(100*destroyers/scored.length)+'% of scored deals', cls:'maroon'},
+  {label:'Success Rate', value: successRate+'%', sub:'creator vs. destroyer ratio', cls:'gold'},
+];
+document.getElementById('kpi-row').innerHTML = kpis.map(k=>`
+  <div class="kpi"><div class="label">${k.label}</div><div class="value ${k.cls}">${k.value}</div><div class="sub">${k.sub}</div></div>
+`).join('');
+
+// ---------- Chart: Deal value by year ----------
+const byYear = {};
+deals.forEach(d=>{ byYear[d.year] = (byYear[d.year]||0) + d.value_bn; });
+const years = Object.keys(byYear).sort();
+new Chart(document.getElementById('chartYear'), {
+  type:'bar',
+  data:{ labels:years, datasets:[{ data:years.map(y=>byYear[y]), backgroundColor:'#16324F', borderRadius:1 }]},
+  options:{ plugins:{legend:{display:false}}, scales:{
+    x:{ ticks:{color:'#5B6270', font:{family:'Arial', size:10}}, grid:{color:'#E7E4DA'} },
+    y:{ ticks:{color:'#5B6270', font:{family:'Consolas', size:10}}, grid:{color:'#E7E4DA'} } } }
+});
+
+// ---------- Chart: outcome distribution ----------
+const outcomeCounts = {'Value Creator':0,'Mixed / Neutral':0,'Value Destroyer':0,'Too Early / Insufficient Data':0};
+deals.forEach(d=>outcomeCounts[d.category]++);
+new Chart(document.getElementById('chartOutcome'), {
+  type:'doughnut',
+  data:{ labels:Object.keys(outcomeCounts), datasets:[{ data:Object.values(outcomeCounts),
+    backgroundColor:['#1E4D3B','#8C6B2E','#7A2530','#B9B4A6'], borderColor:'#FFFFFF', borderWidth:3 }]},
+  options:{ plugins:{legend:{position:'bottom', labels:{color:'#5B6270', font:{family:'Arial', size:11}, padding:14}}} }
+});
+
+// ---------- Chart: industry ----------
+const byIndustry = {};
+deals.forEach(d=>{ byIndustry[d.industry] = (byIndustry[d.industry]||0)+1; });
+const industries = Object.keys(byIndustry).sort((a,b)=>byIndustry[b]-byIndustry[a]);
+new Chart(document.getElementById('chartIndustry'), {
+  type:'bar',
+  data:{ labels:industries, datasets:[{ data:industries.map(i=>byIndustry[i]), backgroundColor:'#16324F', borderRadius:1 }]},
+  options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{
+    x:{ ticks:{color:'#5B6270', font:{family:'Consolas', size:10}}, grid:{color:'#E7E4DA'} },
+    y:{ ticks:{color:'#5B6270', font:{family:'Arial', size:11}}, grid:{display:false} } } }
+});
+
+// ---------- Chart: geo ----------
+const byCountry = {};
+deals.forEach(d=>{ byCountry[d.country] = (byCountry[d.country]||0)+1; });
+const countries = Object.keys(byCountry).sort((a,b)=>byCountry[b]-byCountry[a]);
+new Chart(document.getElementById('chartGeo'), {
+  type:'bar',
+  data:{ labels:countries, datasets:[{ data:countries.map(c=>byCountry[c]), backgroundColor:'#8C6B2E', borderRadius:1 }]},
+  options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{
+    x:{ ticks:{color:'#5B6270', font:{family:'Consolas', size:10}}, grid:{color:'#E7E4DA'} },
+    y:{ ticks:{color:'#5B6270', font:{family:'Arial', size:11}}, grid:{display:false} } } }
+});
+
+// ---------- Top creators / destroyers ----------
+const sorted = [...scored].sort((a,b)=>b.final_score-a.final_score);
+const top10 = sorted.slice(0,10);
+const bottom10 = [...sorted].reverse().slice(0,10);
+
+function renderRank(list, el){
+  el.innerHTML = list.map((d,i)=>`
+    <li>
+      <span><span class="rank-num">${(i+1).toString().padStart(2,'0')}</span>
+      <span class="rank-name">${d.acquirer} <span style="color:var(--ink-dim2)">/</span> ${d.target}</span>
+      <div class="rank-sub">${d.year} &middot; ${fmtB(d.value_bn)}</div></span>
+      <span class="rank-score ${scoreClass(d.category)}">${d.final_score.toFixed(0)}</span>
+    </li>`).join('');
+}
+renderRank(top10, document.getElementById('topCreators'));
+renderRank(bottom10, document.getElementById('topDestroyers'));
+
+// ---------- Explorer table ----------
+const industryFilter = document.getElementById('industryFilter');
+[...new Set(deals.map(d=>d.industry))].sort().forEach(i=>{
+  const opt = document.createElement('option'); opt.value=i; opt.textContent=i; industryFilter.appendChild(opt);
+});
+
+let sortKey='year', sortDir=-1;
+function getVal(d,key){
+  if(key==='deal') return d.acquirer+d.target;
+  return d[key];
+}
+function renderTable(){
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const indF = industryFilter.value;
+  const outF = document.getElementById('outcomeFilter').value;
+  let rows = deals.filter(d=>{
+    const matchQ = !q || d.acquirer.toLowerCase().includes(q) || d.target.toLowerCase().includes(q);
+    const matchI = !indF || d.industry===indF;
+    const matchO = !outF || d.category===outF;
+    return matchQ && matchI && matchO;
+  });
+  rows.sort((a,b)=>{
+    let av=getVal(a,sortKey), bv=getVal(b,sortKey);
+    if(av==null) av = -Infinity; if(bv==null) bv = -Infinity;
+    if(typeof av==='string') return sortDir*av.localeCompare(bv);
+    return sortDir*(av-bv);
+  });
+  document.getElementById('tableBody').innerHTML = rows.map(d=>`
+    <tr data-idx="${deals.indexOf(d)}">
+      <td class="value-cell">${d.year}</td>
+      <td class="deal-pair">${d.acquirer}<span class="arrow">→</span>${d.target}</td>
+      <td><span class="tag">${d.industry}</span></td>
+      <td class="value-cell">${fmtB(d.value_bn)}</td>
+      <td class="value-cell">${fmtPct(d.premium_pct)}</td>
+      <td>${d.payment}</td>
+      <td>${d.final_score!=null ? `<span class="score-pill" style="background:${scoreColor(d.category)}14;color:${scoreColor(d.category)};border-color:${scoreColor(d.category)}">${d.final_score.toFixed(0)}</span>` : '<span style="color:var(--ink-dim2);font-size:11px;">N/A</span>'}</td>
+    </tr>`).join('');
+  [...document.querySelectorAll('#tableBody tr')].forEach(tr=>{
+    tr.addEventListener('click', ()=>openDetail(deals[tr.dataset.idx]));
+  });
+}
+document.getElementById('searchBox').addEventListener('input', renderTable);
+industryFilter.addEventListener('change', renderTable);
+document.getElementById('outcomeFilter').addEventListener('change', renderTable);
+document.querySelectorAll('thead th').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=1; }
+    renderTable();
+  });
+});
+renderTable();
+
+// ---------- Detail modal ----------
+function openDetail(d){
+  const barRow = (label, val) => val==null ? '' : `
+    <div class="score-bar-row">
+      <span class="score-bar-label">${label}</span>
+      <div class="score-bar-track"><div class="score-bar-fill" style="width:${val*10}%; background:${scoreColor(d.category)}"></div></div>
+      <span class="score-bar-val">${val}/10</span>
+    </div>`;
+  document.getElementById('detailCard').innerHTML = `
+    <button class="close-btn" onclick="closeDetail()">Close ✕</button>
+    <h2>${d.acquirer} <span style="color:var(--ink-dim2); font-weight:400;">acquires</span> ${d.target}</h2>
+    <div class="sub">${d.year}${d.closed && d.closed!==d.year ? ' &rarr; Closed '+d.closed : ''} &middot; ${d.industry} &middot; ${d.country}</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="l">Deal Value</div><div class="v">${fmtB(d.value_bn)}</div></div>
+      <div class="detail-item"><div class="l">Premium Paid</div><div class="v">${fmtPct(d.premium_pct)}</div></div>
+      <div class="detail-item"><div class="l">Form of Consideration</div><div class="v">${d.payment}</div></div>
+      <div class="detail-item"><div class="l">Deal Type</div><div class="v">${d.friendly ? 'Friendly' : 'Hostile / Contested'}</div></div>
+    </div>
+    <div class="detail-item" style="margin-bottom:16px;"><div class="l">Strategic Rationale</div><div class="v">${d.rationale}</div></div>
+    ${d.final_score!=null ? `
+      <div class="detail-item" style="margin-bottom:10px;"><div class="l">Score Breakdown &mdash; Composite Outcome Model</div></div>
+      <div class="score-bars">
+        ${barRow('Strategic Fit', d.strategic)}
+        ${barRow('Financial', d.financial)}
+        ${barRow('Market Reaction', d.market)}
+        ${barRow('Synergy', d.synergy)}
+      </div>
+      <div class="detail-item" style="margin-bottom:16px;"><div class="l">Final Score</div><div class="v" style="font-family:var(--mono); font-size:19px; color:${scoreColor(d.category)};">${d.final_score.toFixed(1)} / 100 &mdash; ${d.category}</div></div>
+    ` : `<div class="detail-item" style="margin-bottom:16px;"><div class="l">Status</div><div class="v" style="color:var(--ink-dim2)">${d.category} &mdash; insufficient post-close data to score</div></div>`}
+    <div class="detail-note">${d.note}</div>
+  `;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDetail(){ document.getElementById('overlay').classList.remove('open'); }
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeDetail(); });
+</script>
+</body>
+</html>
